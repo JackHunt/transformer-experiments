@@ -1,31 +1,48 @@
+import torch
 import torch.nn as nn
 
-from attention_functions import scaled_dot_product
+
+def scaled_dot_product(self, Q, K, V, mask=None):
+    d_k = Q.size(-1)
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / torch.sqrt(d_k)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+
+    attn = torch.softmax(scores, dim=-1)
+    out = torch.matmul(attn, V)
+    return out, attn
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, num_heads):
-        super(MultiHeadAttention, self).__init__()
-        self.d_model = d_model
-        self.num_heads = num_heads
-        self.d_k = self.d_model // self.num_heads
+    def __init__(self, d, n):
+        super().__init__()
 
-        self.Q = nn.Linear(self.d_model, self.d_model)
-        self.K = nn.Linear(self.d_model, self.d_model)
-        self.V = nn.Linear(self.d_model, self.d_model)
-        self.fc = nn.Linear(self.d_model, self.d_model)
+        self._d = d
+        self._n = n
+        self._d_k = self._d // self._n
 
-        self.attention_fn = scaled_dot_product
+        self._W_Q = nn.Linear(self._d, self._d)
+        self._W_K = nn.Linear(self._d, self._d)
+        self._W_V = nn.Linear(self._d, self._d)
+        self._W_O = nn.Linear(self._d, self._d)
+
+        self.attn_fn = scaled_dot_product
 
     def forward(self, Q, K, V, mask=None):
-        batch_size = Q.size(0)
+        bs = Q.size(0)
 
-        Q = self.Q(Q).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-        K = self.K(K).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
-        V = self.V(V).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        def split(X):
+            return X.view(bs, -1, self._n, self._d_k).transpose(1, 2)
 
-        output, attn = self.attention_fn(Q, K, V, mask)
+        def combine(X):
+            return X.transpose(1, 2).contiguous().view(bs, -1, self._d)
 
-        output = output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
-        output = self.fc(output)
-        return output, attn
+        Q = split(self._W_Q(Q))
+        K = split(self._W_K(K))
+        V = split(self._W_V(V))
+
+        out, attn = self.attn_fn(Q, K, V, mask)
+
+        out = self._W_O(combine(out))
+
+        return out, attn
