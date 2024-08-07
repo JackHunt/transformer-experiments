@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -16,10 +17,13 @@ class Transformer(nn.Module):
         input_dim,
         output_dim,
         max_len=5000,
+        dropout_p=0.1,
     ):
         super().__init__()
         self._embedding = nn.Embedding(input_dim, d_model)
-        self._positional_encoding = PositionalEncoding(d_model, max_len)
+        self._positional_encoding = PositionalEncoding(
+            d_model, dropout_p=dropout_p, max_len=max_len
+        )
 
         self._encoder_layers = nn.ModuleList(
             [Encoder(d_model, n_heads, d_ff) for _ in range(n_layers)]
@@ -32,7 +36,7 @@ class Transformer(nn.Module):
         self._fc = nn.Linear(d_model, output_dim)
 
     def forward(self, x, mask=None):
-        x = self._embedding(x) * torch.sqrt(self._embedding.embedding_dim)
+        x = self._embedding(x) * np.sqrt(self._embedding.embedding_dim)
         x = self._positional_encoding(x)
 
         for l in self._encoder_layers:
