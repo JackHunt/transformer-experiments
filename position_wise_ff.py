@@ -7,7 +7,7 @@ class PositionWiseFF(nn.Module):
 
         self._layers = nn.Sequential(
             nn.Linear(d_model, d_embed),
-            nn.Linear(d_model, d_embed),
+            nn.Linear(d_embed, d_model),
             nn.Dropout(dropout_p),
             nn.ReLU(),
         )
