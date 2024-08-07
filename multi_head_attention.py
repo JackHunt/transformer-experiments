@@ -1,10 +1,12 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 
 
-def scaled_dot_product(self, Q, K, V, mask=None):
+def scaled_dot_product(Q, K, V, mask=None):
     d_k = Q.size(-1)
-    scores = torch.matmul(Q, K.transpose(-2, -1)) / torch.sqrt(d_k)
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / np.sqrt(d_k)
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
 
@@ -41,7 +43,7 @@ class MultiHeadAttention(nn.Module):
         K = split(self._W_K(K))
         V = split(self._W_V(V))
 
-        out, attn = self.attn_fn(Q, K, V, mask)
+        out, attn = self.attn_fn(Q, K, V, mask=mask)
 
         out = self._W_O(combine(out))
 
