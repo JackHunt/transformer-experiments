@@ -4,7 +4,7 @@ from multi_head_attention import MultiHeadAttention
 from position_wise_ff import PositionWiseFF
 
 
-class Encoder:
+class Encoder(nn.Module):
     def __init__(self, d_model, n_heads, d_ff, dropout_p=0.1):
         super().__init__()
 
