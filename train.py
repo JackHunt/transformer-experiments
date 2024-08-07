@@ -3,44 +3,38 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Subset
 
-from sklearn.model_selection import train_test_split
-
-from datasets.imdb import IMDBDataset
+from data.imdb import IMDB
 from transformer import Transformer
 
 
-def get_dataset(dataset_name, val_split=0.2):
-    ds = None
+def get_dataset(dataset_name):
     if dataset_name == "imdb":
-        ds = IMDBDataset()
-    else:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
+        return IMDB("train"), IMDB("test")
 
-    train_idx, val_idx = train_test_split(list(range(len(ds))), test_size=val_split)
-
-    return Subset(ds, train_idx), Subset(ds, val_idx)
+    raise ValueError(f"Unknown dataset: {dataset_name}")
 
 
-def get_model(args):
+def get_model(args, input_dim):
     return Transformer(
         args.d_model,
         args.num_heads,
         args.num_layers,
         args.d_ff,
-        len(get_dataset(args.dataset).vocab),
+        input_dim,
         2,
     )
 
 
-def train(model, loader, criterion, optimizer, device):
+def train(model, ds, criterion, optimizer, device, batch_size):
+    loader = ds.get_loader(batch_size=batch_size, shuffle=True)
+
     model.train()
     total_loss = 0
     for batch in loader:
         optimizer.zero_grad()
-        text, label = batch
-        text, label = text.to(device), label.to(device)
+        text = batch["input_ids"].to(device)
+        label = batch["label"].to(device)
         output = model(text)
         loss = criterion(output, label)
         loss.backward()
@@ -49,14 +43,16 @@ def train(model, loader, criterion, optimizer, device):
     return total_loss / len(loader)
 
 
-def evaluate(model, loader, criterion, device):
+def evaluate(model, ds, criterion, device, batch_size):
+    loader = ds.get_loader(batch_size=batch_size, shuffle=False)
+
     model.eval()
     total_loss = 0
     correct = 0
     with torch.no_grad():
         for batch in loader:
-            text, label = batch
-            text, label = text.to(device), label.to(device)
+            text = batch["input_ids"].to(device)
+            label = batch["label"].to(device)
             output = model(text)
             loss = criterion(output, label)
             total_loss += loss.item()
@@ -66,22 +62,26 @@ def evaluate(model, loader, criterion, device):
 
 
 def train_loop(
-    model, train_loader, test_loader, criterion, optimizer, device, num_epochs
+    model, train_ds, test_ds, criterion, optimizer, device, num_epochs, batch_size
 ):
     for epoch in range(num_epochs):
-        train_loss = train(model, train_loader, criterion, optimizer, device)
-        valid_loss, accuracy = evaluate(model, test_loader, criterion, device)
+        train_loss = train(model, train_ds, criterion, optimizer, device, batch_size)
+        valid_loss, accuracy = evaluate(model, test_ds, criterion, device, batch_size)
         print(f"Epoch {epoch} train Loss: {train_loss:.3f}")
 
 
 def main(args):
     ds_train, ds_test = get_dataset(args.dataset)
-    m = get_model(args)
+
+    input_dim = len(ds_train.vocab)
+    m = get_model(args, input_dim)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(m.parameters(), lr=args.lr)
 
-    train_loop(m, ds_train, ds_test, criterion, optimizer, "cpu", args.epochs)
+    train_loop(
+        m, ds_train, ds_test, criterion, optimizer, "cpu", args.epochs, args.batch_size
+    )
 
 
 if __name__ == "__main__":
