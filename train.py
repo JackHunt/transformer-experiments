@@ -26,28 +26,27 @@ class SequenceClassifier(nn.Module):
         act_type = nn.Softmax if n > 2 else nn.Sigmoid
         self._classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(self._transformer.output_dim, n),
+            nn.Linear(self._transformer.output_dim * self._transformer.max_len, n),
             act_type(),
         )
 
         print(
             "Building a transformer based classifier with the following configuration:\n"
-            f"\t d_model: {self._transformer.d_model}\n"
-            f"\t n_heads: {self._transformer.n_heads}\n"
-            f"\t n_layers: {self._transformer.n_layers}\n"
-            f"\t d_ff: {self._transformer.d_ff}\n"
-            f"\t input_dim: {self._transformer.input_dim}\n"
-            f"\t output_dim: {self._transformer.output_dim}\n"
-            f"\t max_len_dim: {self._transformer.max_len}\n"
+            f"-> d_model: {self._transformer.d_model}\n"
+            f"-> n_heads: {self._transformer.n_heads}\n"
+            f"-> n_layers: {self._transformer.n_layers}\n"
+            f"-> d_ff: {self._transformer.d_ff}\n"
+            f"-> input_dim: {self._transformer.input_dim}\n"
+            f"-> output_dim: {self._transformer.output_dim}\n"
+            f"-> max_len: {self._transformer.max_len}\n"
         )
 
     def forward(self, src, src_mask):
         x = self._transformer(src, src_mask)
-        print(x.shape)
-        return self._classifier(x)
+        return torch.squeeze(self._classifier(x))
 
 
-def get_model(args, input_dim):
+def get_model(args, input_dim, max_len):
     return SequenceClassifier(
         Transformer(
             args.d_model,
@@ -56,6 +55,7 @@ def get_model(args, input_dim):
             args.d_ff,
             input_dim,
             32,
+            max_len=max_len,
         )
     )
 
@@ -81,7 +81,7 @@ def train(model, ds, criterion, optimizer, device, batch_size, max_batches=None)
 
         output = model(text, src_mask)
 
-        loss = criterion(output, label)
+        loss = criterion(output, label.float())
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -114,18 +114,23 @@ def train_loop(
     model, train_ds, test_ds, criterion, optimizer, device, num_epochs, batch_size
 ):
     for epoch in range(num_epochs):
-        train_loss = train(
-            model, train_ds, criterion, optimizer, device, batch_size, max_batches=2
-        )
-        valid_loss, accuracy = evaluate(model, test_ds, criterion, device, batch_size)
-        print(f"Epoch {epoch} train Loss: {train_loss:.3f}")
+        train_loss = train(model, train_ds, criterion, optimizer, device, batch_size)
+
+        valid_str = ""
+        if not args.skip_validation:
+            valid_loss, accuracy = evaluate(
+                model, test_ds, criterion, device, batch_size
+            )
+            valid_str += f"\n\ttest loss: {valid_loss} \n\ttest accuracy: {accuracy}"
+
+        print(f"Epoch {epoch}\n\ttrain loss: {train_loss}{valid_str}")
 
 
 def main(args):
     ds_train, ds_test = get_dataset(args.dataset)
 
     input_dim = len(ds_train.vocab)
-    m = get_model(args, input_dim)
+    m = get_model(args, input_dim, ds_train.max_len)
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(m.parameters(), lr=args.lr)
@@ -139,7 +144,7 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="Train Transformer model")
     arg_parser.add_argument("--dataset", type=str, default="imdb", help="Dataset name")
     arg_parser.add_argument(
-        "--d_model", type=int, default=512, help="Dimension of model"
+        "--d_model", type=int, default=128, help="Dimension of model"
     )
     arg_parser.add_argument("--num_heads", type=int, default=8, help="Number of heads")
     arg_parser.add_argument(
@@ -152,6 +157,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     arg_parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     arg_parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    arg_parser.add_argument("--skip_validation", action="store_true")
 
     args = arg_parser.parse_args()
 
