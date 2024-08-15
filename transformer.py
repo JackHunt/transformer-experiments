@@ -54,9 +54,7 @@ class Transformer(nn.Module):
         for l in self._decoder_layers:
             x = l(x, src_mask, tgt=tgt, tgt_mask=tgt_mask)
 
-        x = self._fc(x)
-
-        return x
+        return self._fc(x)
 
     @property
     def d_model(self):
