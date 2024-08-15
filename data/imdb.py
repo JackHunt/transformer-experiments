@@ -42,7 +42,7 @@ class IMDB(Dataset):
 
         self._ds = load_dataset("imdb")[mode]
         self._vocab = None
-        self.max_len = max_len
+        self._max_len = max_len
 
     def __len__(self):
         return len(self._ds)
@@ -72,3 +72,7 @@ class IMDB(Dataset):
 
     def get_loader(self, batch_size=32, shuffle=False):
         return DataLoader(self, batch_size=batch_size, shuffle=True)
+
+    @property
+    def max_len(self):
+        return self._max_len
