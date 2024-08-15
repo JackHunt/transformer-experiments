@@ -111,10 +111,26 @@ def evaluate(model, ds, criterion, device, batch_size):
 
 
 def train_loop(
-    model, train_ds, test_ds, criterion, optimizer, device, num_epochs, batch_size
+    model,
+    train_ds,
+    test_ds,
+    criterion,
+    optimizer,
+    device,
+    num_epochs,
+    batch_size,
+    max_batches=None,
 ):
     for epoch in range(num_epochs):
-        train_loss = train(model, train_ds, criterion, optimizer, device, batch_size)
+        train_loss = train(
+            model,
+            train_ds,
+            criterion,
+            optimizer,
+            device,
+            batch_size,
+            max_batches=max_batches,
+        )
 
         valid_str = ""
         if not args.skip_validation:
@@ -136,7 +152,15 @@ def main(args):
     optimizer = optim.Adam(m.parameters(), lr=args.lr)
 
     train_loop(
-        m, ds_train, ds_test, criterion, optimizer, "cpu", args.epochs, args.batch_size
+        m,
+        ds_train,
+        ds_test,
+        criterion,
+        optimizer,
+        "cpu",
+        args.epochs,
+        args.batch_size,
+        max_batches=args.max_batches,
     )
 
 
@@ -158,6 +182,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     arg_parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     arg_parser.add_argument("--skip_validation", action="store_true")
+    arg_parser.add_argument("--max_batches", type=int, default=None)
 
     args = arg_parser.parse_args()
 
