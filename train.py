@@ -5,8 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from data.imdb import IMDB
-from masking import generate_src_mask, generate_tgt_mask
-from transformer import Transformer
+from transformer.masking import generate_src_mask, generate_tgt_mask
+from transformer.transformer import Transformer
 
 
 def get_dataset(dataset_name):
