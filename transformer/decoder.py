@@ -1,7 +1,7 @@
 import torch.nn as nn
 
-from multi_head_attention import MultiHeadAttention
-from position_wise_ff import PositionWiseFF
+from transformer.multi_head_attention import MultiHeadAttention
+from transformer.position_wise_ff import PositionWiseFF
 
 
 class Decoder(nn.Module):
@@ -19,17 +19,16 @@ class Decoder(nn.Module):
         self._ff = PositionWiseFF(d_model, d_ff)
         self._norm3 = nn.LayerNorm(d_model)
 
-    def forward(self, src, src_mask, tgt=None, tgt_mask=None):
-        if tgt_mask is not None and tgt is None:
-            raise ValueError("tgt_mask provided but tgt is None")
+    def forward(self, x, x_mask, x_enc=None, x_enc_mask=None):
+        if x_enc_mask is not None and x_enc is None:
+            raise ValueError("x_enc_mask provided but x_enc is None")
 
-        x = src
-        attn_out, _ = self._self_attn(x, x, x, tgt_mask)
+        attn_out, _ = self._self_attn(x, x, x, x_mask)
         x = x + self._dropout(attn_out)
         x = self._norm1(x)
 
-        if tgt is not None:
-            attn_out, _ = self._cross_attn(x, tgt, tgt, src_mask)
+        if x_enc is not None:
+            attn_out, _ = self._cross_attn(x, x_enc, x_enc, x_enc_mask)
             x = x + self._dropout(attn_out)
             x = self._norm2(x)
 

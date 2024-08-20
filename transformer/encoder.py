@@ -1,7 +1,7 @@
 import torch.nn as nn
 
-from multi_head_attention import MultiHeadAttention
-from position_wise_ff import PositionWiseFF
+from transformer.multi_head_attention import MultiHeadAttention
+from transformer.position_wise_ff import PositionWiseFF
 
 
 class Encoder(nn.Module):

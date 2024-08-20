@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from data.imdb import IMDB
-from transformer.masking import generate_src_mask, generate_tgt_mask
+from transformer.masking import generate_x_mask, generate_x_enc_mask
 from transformer.transformer import Transformer
 
 
@@ -77,7 +77,7 @@ def train(model, ds, criterion, optimizer, device, batch_size, max_batches=None)
         label = batch["label"].to(device)
 
         if src_mask is None:
-            src_mask = generate_src_mask(text, 2)
+            src_mask = generate_x_mask(text, 2)
 
         output = model(text, src_mask)
 
