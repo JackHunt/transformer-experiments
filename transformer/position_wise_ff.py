@@ -1,8 +1,10 @@
+import torch
+
 import torch.nn as nn
 
 
 class PositionWiseFF(nn.Module):
-    def __init__(self, d_model, d_embed, dropout_p=0.1):
+    def __init__(self, d_model: int, d_embed: int, dropout_p: float = 0.1):
         super().__init__()
 
         self._layers = nn.Sequential(
@@ -12,5 +14,5 @@ class PositionWiseFF(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self._layers(x)

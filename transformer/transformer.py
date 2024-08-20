@@ -1,24 +1,24 @@
 import numpy as np
 import torch
-import torch.nn as nn
-
 from transformer.decoder import Decoder
 from transformer.encoder import Encoder
 from transformer.positional_encoding import PositionalEncoding
+
+import torch.nn as nn
 
 
 class Transformer(nn.Module):
     def __init__(
         self,
-        d_model,
-        n_heads,
-        n_layers,
-        d_ff,
-        input_dim,
-        output_dim,
-        max_len=5000,
-        dropout_p=0.1,
-        decoder_only=False,
+        d_model: int,
+        n_heads: int,
+        n_layers: int,
+        d_ff: int,
+        input_dim: int,
+        output_dim: int,
+        max_len: int = 5000,
+        dropout_p: float = 0.1,
+        decoder_only: bool = False,
     ):
         super().__init__()
         self._d_model = d_model
@@ -48,7 +48,13 @@ class Transformer(nn.Module):
 
         self._fc = nn.Linear(d_model, output_dim)
 
-    def forward(self, x, x_mask, x_enc=None, x_enc_mask=None):
+    def forward(
+        self,
+        x: torch.Tensor,
+        x_mask: torch.Tensor,
+        x_enc: torch.Tensor = None,
+        x_enc_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
         if x_enc is not None and self.decoder_only:
             raise ValueError("x_enc provided but decoder_only is True")
 
@@ -69,33 +75,33 @@ class Transformer(nn.Module):
         return self._fc(x)
 
     @property
-    def d_model(self):
+    def d_model(self) -> int:
         return self._d_model
 
     @property
-    def n_heads(self):
+    def n_heads(self) -> int:
         return self._n_heads
 
     @property
-    def n_layers(self):
+    def n_layers(self) -> int:
         return self._n_layers
 
     @property
-    def d_ff(self):
+    def d_ff(self) -> int:
         return self._d_ff
 
     @property
-    def input_dim(self):
+    def input_dim(self) -> int:
         return self._input_dim
 
     @property
-    def output_dim(self):
+    def output_dim(self) -> int:
         return self._output_dim
 
     @property
-    def max_len(self):
+    def max_len(self) -> int:
         return self._max_len
 
     @property
-    def decoder_only(self):
+    def decoder_only(self) -> bool:
         return self._decoder_only

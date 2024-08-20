@@ -1,15 +1,15 @@
 import argparse
-
+from typing import Tuple
 import torch
-import torch.nn as nn
-import torch.optim as optim
-
 from data.imdb import IMDB
 from transformer.masking import generate_x_mask, generate_x_enc_mask
 from transformer.transformer import Transformer
 
+import torch.nn as nn
+import torch.optim as optim
 
-def get_dataset(dataset_name):
+
+def get_dataset(dataset_name: str) -> Tuple[IMDB, IMDB]:
     if dataset_name == "imdb":
         return IMDB("train"), IMDB("test")
 
@@ -17,7 +17,7 @@ def get_dataset(dataset_name):
 
 
 class SequenceClassifier(nn.Module):
-    def __init__(self, transformer, num_classes=2):
+    def __init__(self, transformer: Transformer, num_classes: int = 2):
         super().__init__()
 
         self._transformer = transformer
@@ -41,12 +41,14 @@ class SequenceClassifier(nn.Module):
             f"-> max_len: {self._transformer.max_len}\n"
         )
 
-    def forward(self, src, src_mask):
+    def forward(self, src: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor:
         x = self._transformer(src, src_mask)
         return torch.squeeze(self._classifier(x))
 
 
-def get_model(args, input_dim, max_len):
+def get_model(
+    args: argparse.Namespace, input_dim: int, max_len: int
+) -> SequenceClassifier:
     return SequenceClassifier(
         Transformer(
             args.d_model,
@@ -60,7 +62,15 @@ def get_model(args, input_dim, max_len):
     )
 
 
-def train(model, ds, criterion, optimizer, device, batch_size, max_batches=None):
+def train(
+    model: SequenceClassifier,
+    ds: IMDB,
+    criterion: nn.Module,
+    optimizer: optim.Optimizer,
+    device: str,
+    batch_size: int,
+    max_batches: int = None,
+) -> float:
     loader = ds.get_loader(batch_size=batch_size, shuffle=True)
 
     src_mask = None
@@ -89,7 +99,13 @@ def train(model, ds, criterion, optimizer, device, batch_size, max_batches=None)
     return total_loss / len(loader)
 
 
-def evaluate(model, ds, criterion, device, batch_size):
+def evaluate(
+    model: SequenceClassifier,
+    ds: IMDB,
+    criterion: nn.Module,
+    device: str,
+    batch_size: int,
+) -> Tuple[float, float]:
     loader = ds.get_loader(batch_size=batch_size, shuffle=False)
 
     model.eval()
@@ -111,16 +127,16 @@ def evaluate(model, ds, criterion, device, batch_size):
 
 
 def train_loop(
-    model,
-    train_ds,
-    test_ds,
-    criterion,
-    optimizer,
-    device,
-    num_epochs,
-    batch_size,
-    max_batches=None,
-):
+    model: SequenceClassifier,
+    train_ds: IMDB,
+    test_ds: IMDB,
+    criterion: nn.Module,
+    optimizer: optim.Optimizer,
+    device: str,
+    num_epochs: int,
+    batch_size: int,
+    max_batches: int = None,
+) -> None:
     for epoch in range(num_epochs):
         train_loss = train(
             model,
@@ -142,7 +158,7 @@ def train_loop(
         print(f"Epoch {epoch}\n\ttrain loss: {train_loss}{valid_str}")
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     ds_train, ds_test = get_dataset(args.dataset)
 
     input_dim = len(ds_train.vocab)

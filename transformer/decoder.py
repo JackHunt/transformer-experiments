@@ -1,11 +1,13 @@
-import torch.nn as nn
-
+import torch
 from transformer.multi_head_attention import MultiHeadAttention
 from transformer.position_wise_ff import PositionWiseFF
+from typing import Optional, Tuple
+
+import torch.nn as nn
 
 
 class Decoder(nn.Module):
-    def __init__(self, d_model, n_heads, d_ff, dropout_p=0.1):
+    def __init__(self, d_model: int, n_heads: int, d_ff: int, dropout_p: float = 0.1):
         super().__init__()
 
         self._dropout = nn.Dropout(dropout_p)
@@ -19,7 +21,13 @@ class Decoder(nn.Module):
         self._ff = PositionWiseFF(d_model, d_ff)
         self._norm3 = nn.LayerNorm(d_model)
 
-    def forward(self, x, x_mask, x_enc=None, x_enc_mask=None):
+    def forward(
+        self,
+        x: torch.Tensor,
+        x_mask: torch.Tensor,
+        x_enc: Optional[torch.Tensor] = None,
+        x_enc_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         if x_enc_mask is not None and x_enc is None:
             raise ValueError("x_enc_mask provided but x_enc is None")
 

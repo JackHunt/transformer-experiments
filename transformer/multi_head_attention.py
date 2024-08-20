@@ -1,10 +1,14 @@
 import numpy as np
-
 import torch
+from torch import Tensor
+from typing import Optional, Tuple
+
 import torch.nn as nn
 
 
-def scaled_dot_product(Q, K, V, mask=None):
+def scaled_dot_product(
+    Q: Tensor, K: Tensor, V: Tensor, mask: Optional[Tensor] = None
+) -> Tuple[Tensor, Tensor]:
     d_k = Q.size(-1)
     scores = torch.matmul(Q, K.transpose(-2, -1)) / np.sqrt(d_k)
     if mask is not None:
@@ -16,7 +20,7 @@ def scaled_dot_product(Q, K, V, mask=None):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d, n):
+    def __init__(self, d: int, n: int):
         super().__init__()
 
         self._d = d
@@ -30,13 +34,15 @@ class MultiHeadAttention(nn.Module):
 
         self.attn_fn = scaled_dot_product
 
-    def forward(self, Q, K, V, mask=None):
+    def forward(
+        self, Q: Tensor, K: Tensor, V: Tensor, mask: Optional[Tensor] = None
+    ) -> Tuple[Tensor, Tensor]:
         bs = Q.size(0)
 
-        def split(X):
+        def split(X: Tensor) -> Tensor:
             return X.view(bs, -1, self._n, self._d_k).transpose(1, 2)
 
-        def combine(X):
+        def combine(X: Tensor) -> Tensor:
             return X.transpose(1, 2).contiguous().view(bs, -1, self._d)
 
         Q = split(self._W_Q(Q))

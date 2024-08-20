@@ -1,11 +1,11 @@
 import torch
-import torch.nn as nn
-
 import numpy as np
+
+import torch.nn as nn
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d, dropout_p=0.1, max_len=5000):
+    def __init__(self, d: int, dropout_p: float = 0.1, max_len: int = 5000):
         super().__init__()
         self._dropout = nn.Dropout(dropout_p)
 
@@ -19,6 +19,6 @@ class PositionalEncoding(nn.Module):
 
         self.register_buffer("pe", pe)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x + self.pe[: x.size(0), :]
         return self._dropout(x)
